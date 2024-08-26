@@ -18,8 +18,11 @@ public class PlayerController : MonoBehaviour
     
     private bool estaPendurado = false;
     private Transform rootAlvo;
+    public Transform parede;
     public bool gatilho;
+    public Transform mao, obj;
 
+    public static float movX, movY;
 
     void Start()
     {
@@ -27,6 +30,13 @@ public class PlayerController : MonoBehaviour
         gatilho = false;
     }
 
+    void AjustaRotacao()
+    {
+        if (Vector3.Distance(transform.position, parede.position) <= 3.1f)
+        {
+            transform.rotation = Quaternion.Lerp(transform.rotation, parede.rotation, 1);
+        }
+    }
 
     void FixedUpdate()
     {
@@ -35,30 +45,25 @@ public class PlayerController : MonoBehaviour
 
         if (estaPendurado && gatilho)
         {
-            transform.position = rootAlvo.position;
+            transform.position = new Vector3(transform.position.x, rootAlvo.position.y, rootAlvo.position.z);
             gatilho = false;
         }
-
-        transform.position = rootAlvo.position;
     }
 
     void Update()
     {
-        float move = Input.GetAxis("Vertical") * vel;
-        float rotacao = Input.GetAxis("Horizontal");
-
-        move *= Time.deltaTime;
-
-        if (!morto && !estaPendurado)
-            transform.Rotate(0, rotacao, 0);
+        movY = Input.GetAxis("Vertical");
+        movX = Input.GetAxis("Horizontal");
+        heroiAnim.SetFloat("Y", movY, 0.1f,Time.deltaTime);
+        heroiAnim.SetFloat("X", movX, 0.1f, Time.deltaTime);
 
         if (estaPendurado)
         {
-            if (rotacao >= 1)
+            if (movX >= 1)
             {
                 heroiAnim.SetBool("PenduradoDir", true);
             }
-            else if (rotacao <= -1)
+            else if (movX <= -1)
             {
                 heroiAnim.SetBool("PenduradoEsq", true);
             }
@@ -68,11 +73,6 @@ public class PlayerController : MonoBehaviour
                 heroiAnim.SetBool("PenduradoEsq", false);
             }
         }
-
-        if (move != 0)
-            heroiAnim.SetBool("Andar", true);
-        else
-            heroiAnim.SetBool("Andar", false);
 
         if (morto && Input.GetKeyDown(KeyCode.Z))
             heroiAnim.SetTrigger("Levantar");
@@ -91,6 +91,7 @@ public class PlayerController : MonoBehaviour
             {
                 GetComponent<Rigidbody>().isKinematic = false;
                 estaPendurado = false;
+                heroiAnim.SetTrigger("Descendo");
                 heroiAnim.ResetTrigger("Pendurado");
                 rootAlvo = null;
                 return;
@@ -102,6 +103,11 @@ public class PlayerController : MonoBehaviour
         if (!morto && Input.GetKeyUp(KeyCode.Space))
         {
             heroiAnim.ResetTrigger("Pulo");
+        }
+
+        if (estaPendurado && Input.GetKeyDown(KeyCode.Z))
+        {
+            StartCoroutine(Subindo());
         }
     }
 
@@ -127,14 +133,34 @@ public class PlayerController : MonoBehaviour
         //rootAlvo = alv;
     }
 
+    IEnumerator Subindo()
+    {
+        heroiAnim.SetTrigger("Subindo");
+        heroiAnim.ResetTrigger("Pendurado");
+
+        yield return new WaitForSeconds(3.24f);
+        estaPendurado = false;
+        gatilho = true;
+        GetComponent<Rigidbody>().isKinematic = false;
+        rootAlvo = null;
+    }
     
 
     //IK
 
     private void OnAnimatorIK(int layerIndex)
     {
-        heroiAnim.SetLookAtWeight(1);
+        heroiAnim.SetLookAtWeight(heroiAnim.GetFloat("Ik_val"));
         heroiAnim.SetLookAtPosition(alvo.position);
+
+        if (heroiAnim.GetFloat("Ik_val") > 0.9f)
+        {
+            obj.parent = mao;
+            obj.localPosition = new Vector3(-1.499938f, 1.010078f, -0.7899401f);
+        }
+
+        heroiAnim.SetIKPositionWeight(AvatarIKGoal.RightHand, heroiAnim.GetFloat("Ik_val"));
+        heroiAnim.SetIKPosition(AvatarIKGoal.RightHand, alvo.position);
     }
 
 }
