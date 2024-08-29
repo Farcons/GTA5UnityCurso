@@ -8,7 +8,7 @@ public class PenduradoController : MonoBehaviour
     {
         if (other.gameObject.CompareTag("Mao"))
         {
-            other.GetComponentInParent<PlayerController>().Pendurado(rootP.transform);
+            //other.GetComponentInParent<PersonagemCod>().Pendurado(rootP.transform);
         }
     }
 }
